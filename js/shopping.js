@@ -1,72 +1,80 @@
 (() => {
-const listElement = document.getElementById('shopping');
-const newItem = document.getElementById('newItem');
-const addBtn = document.getElementById('addBtn');
-const clearBtn = document.getElementById('clearBtn');
+  const listElement = document.getElementById('shopping');
+  const newItem = document.getElementById('newItem');
+  const addBtn = document.getElementById('addBtn');
+  const clearBtn = document.getElementById('clearBtn');
 
-function addItem(item) {
-  const itemElement = document.createElement('li');
-  itemElement.textContent = item;
-  const deleteButton = document.createElement('button');
-  deleteButton.textContent = 'x';
-  itemElement.appendChild(deleteButton);
-  deleteButton.addEventListener('click', ev => { // <- new
-   listElement.removeChild(itemElement);        // <- new
-  });                                            // <- new
-  listElement.appendChild(itemElement);
-};
+  function addItem(item) {
+    if(!item) return;
+    const itemElement = document.createElement('li');
+    itemElement.textContent = item;
+    const deleteButton = document.createElement('button');
+    deleteButton.textContent = 'x';
+    itemElement.appendChild(deleteButton);
+    deleteButton.addEventListener('click', ev => {
+      listElement.removeChild(itemElement);
+      save();
+    });
+    listElement.appendChild(itemElement);
+  };
 
-function addList(list) {
-list.forEach(addItem);
-}
-
-function renderList(list) {
-  list.forEach(item => {
-    addItem(item);
-  });
-}
-
-function clearList() {
-  while(listElement.firstChild) {
-    listElement.removeChild(listElement.firstChild);
+  function addList(list) {
+  list.forEach(addItem);
   }
-}
 
-addBtn.addEventListener('click', ev => {
-  newItem.value.split(',').forEach(v => {
-    if(v) {
-      addItem(v);
+  function clearList() {
+    while(listElement.firstChild) {
+      listElement.removeChild(listElement.firstChild);
+    }
+  }
+
+  function save() {
+    const items = [...listElement.childNodes];
+    if(items.length) {
+      const list = items.map(item => {
+        return item.textContent.slice(0, -1);
+      });
+      localStorage.setItem('shopping-list', list);
+    } else {
+      localStorage.removeItem('shopping-list');
+    }
+  }
+
+  function load() {
+    const shoppingList = localStorage.getItem('shopping-list');
+    if(shoppingList) {
+      addList(shoppingList.split(','));
+    }
+  }
+
+  addBtn.addEventListener('click', ev => {
+    addList(newItem.value.split(','));
+    newItem.value = null;
+    save();
+  });
+
+  newItem.addEventListener("keyup", ev => {
+    if (ev.key === "Enter") {
+      addBtn.click();
     }
   });
-  newItem.value = null;
-});
 
-clearBtn.addEventListener('click', ev => {
-  clearList();
-});
+  clearBtn.addEventListener('click', ev => {
+    clearList();
+    save();
+  });
 
-window.addEventListener('beforeunload', ev => {
-  const items = [...listElement.childNodes];
-  if(items.length) {
-    const list = items.map(item => {
-      return item.textContent.slice(0, -1);
-    });
-    localStorage.setItem('shopping-list', list);
-  } else {
-    localStorage.removeItem('shopping-list');
-  }
-});
+  // Saving data for later use
+  window.addEventListener('beforeunload', save);
 
-window.addEventListener('DOMContentLoaded', ev => {
-  const shoppingList = localStorage.getItem('shopping-list');
-  if(shoppingList) {
-    renderList(shoppingList.split(','));
-  }
-});
+  // Loading data from local storage
+  window.addEventListener('DOMContentLoaded', load);
 
-newItem.addEventListener("keyup", ev => {
-  if (ev.keyCode === 13) {
-    addBtn.click();
-  }
-});
-})()
+  window.addEventListener('storage', ev => {
+    if(ev.key == "shopping-list") {
+      clearList();
+      load();
+    }
+  })
+
+})();
